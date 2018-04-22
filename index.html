@@ -6,6 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 	<script src="craftable.js"></script>
+	<script src="words.js" async="true"></script>
 	<script>
 		
 		var game = new craftable();
@@ -19,7 +20,16 @@
 		color:#eee;
 		font: 16px sans-serif;
 	}
-	#rack, #characters, #strokes, #gamedata{
+
+	h1, h2, h3{
+		margin-bottom:0;
+	}
+	header p{
+		padding:0;
+		margin:0;
+	}
+
+	#rack, #characters, #strokes, #gamedata, #strokezone{
 		display:flex;
 	}
 	.flexrow{
@@ -72,6 +82,12 @@
 		border:1px solid #eee;
 		color:#eee;
 	}
+	#shredder{
+		background:#f00;
+		padding:0 1em;
+		border: 1px solid #eee;
+		
+	}
 
 
 
@@ -84,23 +100,25 @@
 	</header>
 	<div id="playerarea">
 
-		<h2 id="player_name">Lee's Turn</h2>
+		
 		<div id="carrel">
 			
-			<h3>Strokes</h3>
-			<div id="strokes"> 
-			</div>
-			<h3>Craft Characters</h3>
+			<div id="strokezone">
+				<div id="shredder" ondrop="game.dropLetterShred(event);" ondragover="game.dragOverShred(event)">
+					SHRED<br/>LETTER TO<br/>STROKES
+				</div>
+					<h3>My<br/>Strokes</h3>
+					
+					<div id="strokes"> 
+					</div>
+				</div>
 			<div id="characters">
-				
-
 			</div>
-			
 			<div id="rack" ondrop="game.dropLetterRack(event)" ondragover="game.dragOverLetterBoard(event)">
 			</div>
 		</div>
 	</div>
-	
+	<h2 id="player_name">Lee's Turn</h2>
 	<div id="controls">
 		<button onclick="game.playWord()" id="play">Play</button>
 	</div>
@@ -113,7 +131,7 @@
 			</div>
 		</div>
 		<div class="flexrow">
-			<h2>Letters</h2>
+			
 			<div id="letters">
 			</div>
 		</div>
@@ -131,8 +149,5 @@
 		<p>The Game works much like scabble or words with friends. It is designed for two player local play. Drag letters ontot eh grid to play them. However you can bvreak letters into component parts and the craft new letters from them. This means that pints are assigned base on how amny strokes you need to make them as letters are now interchangble</p>
 		
 	</div>
-	<footer>
-		2018 
-	</footer>
 </body>
 </html>

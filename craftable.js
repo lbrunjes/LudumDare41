@@ -14,11 +14,12 @@ cf.active_player = 0;
 cf.bag = [];
 cf.settings ={
 	max_letters:7,
-	board_size : 15
+	board_size : 17
 };
 cf.board = [];
 cf.history =[];
 cf.scoring =[];
+cf.errorsound =  new Audio('boo-bbc.mp3');
 
 cf.letters={
 	A:{"freq":9, "value": 3, "strokes":{'/':1,'\\':1,'-':1}},
@@ -78,6 +79,7 @@ cf.letters={
 
 	};
 
+
 	/** shuffle the bag of letters based on frequency*/
 	cf.populateBag=function(){
 		var bag = [];
@@ -90,163 +92,210 @@ cf.letters={
 		//shuffle the tiles and 
 		cf.bag = cf.shuffle(bag);
 	}
-	
-	/** plays a word for scoring*/
-	cf.playWord=function(){
-
-		var word="";
-		var indexes =[];
-
-		var canPlayWord = true;
+	/** reutns and object to do game updates with in play*/
+	cf.getPlayResult=function(){
+		var result = {
+			canPlayWord : true,
+			wordsToScore: [],//[startidx,word];
+			playedletters :[],
+			board:cf.board//
 		
-		
-		//get all teh letters dropped onto the board
+		};
+		var wordsfound = {};
+
+
+		var seek_word_root =function(idx, axis, board){
+			var _idx = [idx[0],idx[1]];
+			_idx[axis]--;
+			if(_idx[axis] < 0 || board[_idx[0]][_idx[1]] == ""){
+				return idx;
+			}
+
+			return seek_word_root(_idx, axis, board);
+		};
+
+
+		var read_word = function(idx, axis, board){
+			word = "";
+			var _idx = [idx[0],idx[1]];
+			while(_idx[axis]< board.length && board[_idx[0]][_idx[1]] != ""){
+				word+= board[_idx[0]][_idx[1]]
+				_idx[axis]++;
+			}
+			return word;
+		};
+
+		var board = JSON.parse(JSON.stringify(cf.board));
+
 		var lettersplayed = document.querySelectorAll("#board td div");
 
-		//dont allow plays that dont include letters
-		if(lettersplayed.length == 0){
-			canPlayWord =false;
-		}
+		//if we dont ahve letters we are donezo.
+		result.canPlayWord = result.canPlayWord && lettersplayed.length > 0
 		
+		
+		var new_letters = []
+		//get played letters
 		for(var i = 0 ;i < lettersplayed.length; i++ ){
-			word+= lettersplayed[i].innerText;
 			var idx = lettersplayed[i].parentElement.id.substring(2).split("-");
-			//gotta make sure these are ints
-			idx[0] = parseInt(idx[0]);
-			idx[1] =parseInt(idx[1]);
-			indexes.push(idx);
-
+			board[idx[0]][idx[1]] = lettersplayed[i].innerText;
 			
+			idx[0] = parseInt(idx[0]);
+			idx[1] = parseInt(idx[1]);
+		
+			new_letters.push(idx);
+			//save teh letter to the played queue
+			result.playedletters.push(lettersplayed[i].innerText);
 		}
 
-		//determine if the user has played a word on a single axis
-		//alnog the way check to see if we happen ontoa  gap
-		var ishoriz = true; 
-		var isvert= true;
-		var hasgaps = false;
-		for(var i =0; i <  indexes.length; i++){
-			isvert = isvert && indexes[i][0] == indexes[0][0];
-			ishoriz = ishoriz && indexes[i][1] == indexes[0][1];
+		
+		//do we have the lttes to play?
+		var havetheletters= true;
+		var tmp = JSON.parse(JSON.stringify(cf.players[cf.active_player].letters));
+		for(var i in result.playedletters){
+			var idx= tmp.indexOf(result.playedletters[i]);
+			if(idx>=0){
+				tmp.splice(idx,1);
 
-
-			hasgaps = hasgaps || ( i >0 &&cf.mDist(indexes[i], indexes[i-1])> 1);
-		}
-		//only allow words that are entirely in the same axis.
-		canPlayWord = canPlayWord && ( ishoriz|| isvert);
-
-		//do we ahve the letters
-		for(var i = 0; i < word.length;i++){
-			if(cf.players[cf.active_player].letters.indexOf(word[i])<0){
-				//prevent play;
-				canPlayWord= false;
+			}
+			else{
+				havetheletters =false;
 				break;
 			}
 		}
+		result.canPlayWord = result.canPlayWord && havetheletters;
 
 
-		//is teh space on the board in conatact with other letters or the starting space?
-		var incontact = false;
-		var outhers
-		if(cf.history.length <=1){
-			//fspecial case for the intial play
-			for(var i = 0 ; i <indexes.length;i++){
-				if(indexes[i][0] == Math.floor(cf.board.length/2) 
-					&& indexes[i][1] == Math.floor(cf.board.length/2)){
-					incontact =true;
-					break;
-				}
+		//is teh play all in one axis? and unitterupted
+		var is_horz = true;
+		var is_vert = true;
+		for(var i = 1; i < new_letters.length ;i++){
+			if(new_letters[i][0] != new_letters[0][0]){
+				is_vert = false;
+			}
+			if(new_letters[i][1]!=new_letters[0][1]){
+				is_horz = false;
 			}
 		}
-		else{
-			//DO ANY OF THE EIGHT SURROUNGIN SQUARES HAVE A LETTER IN THEM
-			for(var i = 0 ; i <indexes.length;i++){
-				var surrounds =[];
-				//generate a list of surrounding nodes to check. this sucks and is verbose but it aids debuggging and im trying to do this while a toddler runs around
-				if(indexes[i][0]>0){
-					if(indexes[i][1]>0){
-					surrounds.push([indexes[i][0] -1, indexes[i][1]])
+		result.canPlayWord = result.canPlayWord && (is_vert ||is_horz);
+
+				
+		var foundwords = false;
+		//for each letter track up and left until you reach spoace thenread in til you read a space, track the words in an array
+		for(var i = 0; i < new_letters.length;i++){
+			//find the word roots for both axes
+			for(var j = 0 ; j <2;j++){
+				var idx = seek_word_root(new_letters[i],j, board);
+				
+				if(!wordsfound[idx.join("-")+"."+j]){
+					var word = read_word(idx, j, board);
 					
-					}
-					if(indexes[i][1]<cf.board.length-1){
-						surrounds.push([indexes[i][0], indexes[i][1]+1])
-					}
-				}
-				if(indexes[i][0]<cf.board.length-1){
-					if(indexes[i][1]>0){
-					surrounds.push([indexes[i][0] +1, indexes[i][1]])
-					surrounds.push([indexes[i][0], indexes[i][1]-1])
-					
-					}
-					
-				}
-				for( var j in surrounds){
-					console.log(surrounds[j]);
-					if(cf.board[surrounds[j][0]][surrounds[j][1]] != ""){
-						incontact =true;
-						
-						
-							//should we add this letter?
-							
-							if((ishoriz && indexes[0][1] == surrounds[j][1]) 
-								||(isvert && indexes[0][0] == surrounds[j][0])){
-								// word.splice(i,1,cf.board[surrounds[j][0]][surrounds[j][1]]);
-								// console.log
-								//Start new owrds,
-							}
-							
-						
+					if(word.length>1  && words.indexOf(word.toLowerCase())>=0){
+						wordsfound[idx.join("-")+"."+j] = word;
+						foundwords =true;
+						console.log(word);
 					}
 				}
 			}
+			//the first letter found must have a word attached that contains all letters
+			if(i == 0 ){
+				var found =false;
+				for(var j in wordsfound){
+					var all = true;
+					var word = wordsfound[j];
+					for(var k in result.playedletters){
+						var _word = word.replace(result.playedletters[k],"");
+						all = all && _word!=word;
+						word = _word;
+					}
+					found = found || all;
+				}
+				if(!found){
+					result.canPlayWord =false;
+				}
+			}
 		}
-		canPlayWord = canPlayWord && incontact;
+		result.canPlayWord = result.canPlayWord && foundwords;
 
-		//does it make a word?
+		//all letters must be in one word.
+
 		
-		//TODO
+
+		console.log(result, wordsfound)	;
+		
+		//copy words to score 
+		
+		if(result.canPlayWord){
+			for(var i in wordsfound){
+				result.wordsToScore.push(wordsfound[i])
+			
+			}	
+			result.board = board;
+		}
+
+		return result;
+	}
+	
+	/** plays a word for scoring*/
+	cf.playWord=function(){
+		var r = cf.getPlayResult();
+
 		
 		//can the player play a word?
-		if(canPlayWord){
-			var score =0;
+		if(r.canPlayWord){
+			cf.errorsound.pause();
+			cf.errorsound.currentTime = 0;
 			
-			for(var i = 0 ; i <indexes.length;i++){
-				//set board values
-				console.log(indexes[i][0],indexes[i][1], word[i])
-				cf.board[indexes[i][0]][indexes[i][1]] = word[i];
-				//scoring
-				score+=cf.scoreChar(word[i]);
-
+			for(var j in r.wordsToScore){
+				var score =0;
+				for(var i = 0 ; i <r.wordsToScore[j].length;i++){
+					score+=cf.scoreChar(r.wordsToScore[j][i]);
+				}
+				//set score
+				cf.players[cf.active_player].score += score;
+				//save to scoring table
+				cf.scoring.push({player:cf.players[cf.active_player].name, word:r.wordsToScore[j], score:score});
+			
 			}
 			
-			//set score
-			cf.players[cf.active_player].score += score;
+			//set the board
+			cf.board = r.board;
 
 			//remove old letters
-			for(var i = 0; i < word.length ;i++){
-				cf.players[cf.active_player].letters.splice(cf.players[cf.active_player].letters.indexOf(word[i]), 1);
+			for(var i = 0; i < r.playedletters.length ;i++){
+				cf.players[cf.active_player].letters.splice(cf.players[cf.active_player].letters.indexOf(r.playedletters[i]), 1);
 			}
 
 			//next letters
-			var more_letters =  word.length;
+			var more_letters =  r.playedletters.length;
 			//prevent users from getting 50k letters and also preven them from converting eltters into stroeks to refill
 			if(more_letters + cf.players[cf.active_player].letters.length >= cf.settings.max_letters){
 				more_letters = cf.settings.max_letters - cf.players[cf.active_player].letters.length;
 			}
-			if(more_letters > 0 ){
-				cf.players[cf.active_player].letters = 
-					cf.players[cf.active_player].letters.concat(
-					cf.bag.splice(0, more_letters));
+
+			//is it game over?
+			if(cf.bag.length==0 && cf.players[cf.active_player].letters.length ==0 ){
+				cf.gameOver();
+
 			}
-			//remove all strokes?
-			//TODO
+			else{
+				if(more_letters > 0 ){
+					cf.players[cf.active_player].letters = 
+						cf.players[cf.active_player].letters.concat(
+						cf.bag.splice(0, more_letters));
+				}
+				//remove all strokes?
+				//TODO
 
-			//save to scoring table
-			cf.scoring.push({player:cf.players[cf.active_player].name, word:word, score:score});
-			
-			//next players turn
-			cf.active_player = (cf.active_player+ 1) % cf.players.length;
 
+				
+				//next players turn
+				cf.active_player = (cf.active_player+ 1) % cf.players.length;
+			}
 			cf.pushHistoryState();
+		}
+		else{
+			//TODO 
+			cf.errorsound.play();
 		}
 
 		//redraw
@@ -261,7 +310,7 @@ cf.letters={
 			players : JSON.stringify(cf.players),
 			scoring: JSON.stringify(cf.scoring)
 		});
-	}
+	};
 
 
 
@@ -306,9 +355,14 @@ cf.letters={
 			row.appendChild(cell);
 			table.appendChild(row);
 		}
+		var p = document.createElement("p");
+		p.innerText = cf.bag.length + " letters left";
+		
 		tgt = document.getElementById("scores")
 		cf.clearEl(tgt);
+
 		tgt.appendChild(table);
+		tgt.appendChild(p);
 
 		//letter details
 		table = document.createElement("table");
@@ -340,7 +394,7 @@ cf.letters={
 		}
 		tgt = document.getElementById("letters")
 		cf.clearEl(tgt);
-		tgt.innerText = cf.bag.length + " letters left";
+		
 		tgt.appendChild(table);
 		
 		//show last plays
@@ -361,52 +415,51 @@ cf.letters={
 		tgt = document.getElementById("history")
 		cf.clearEl(tgt);
 		tgt.appendChild(table);
-	}
+	};
 
 	/** remove all chil elements from element */
 	cf.clearEl=function(el){
 		while(el.children.length>0){
 			el.removeChild(el.children[0]);
 		}
-	}
+	};
 
-	cf.mDist=function(point1, point2){
-		return Math.abs(point1[0] - point2[0])+Math.abs(point1[1] - point2[1]);
-	}
 	/** draws the players posessions to the dom*/
-	cf.drawCarrel=function(player_id){
-		if(!player_id){
-			player_id = cf.active_player;
-		}
+	cf.drawCarrel=function(){
+		
 
 		document.getElementById("player_name").innerText = cf.players[cf.active_player].name+
 			(cf.players[cf.active_player].name.toLowerCase().lastIndexOf("s") > cf.players[cf.active_player].name.length-2?"' Turn":"'s Turn");
 
 		//draw letters in rack
 		var letters = document.getElementById("rack");
+		var used_letters =  document.querySelectorAll("#board td div");
+
+		var omit_us =[];
+		for(var i = 0 ;i < used_letters.length; i++ ){
+			omit_us.push(used_letters[i].innerText);
+		}
+
+
 		cf.clearEl(letters);
-		for(var i = 0 ; i < cf.players[player_id].letters.length;i++){
+		for(var i = 0 ; i < cf.players[cf.active_player].letters.length;i++){
 
-			var div = document.createElement("div");
-			div.innerText = cf.players[player_id].letters[i];
-			div.classList.add("player_letter");
+			if(omit_us.indexOf(cf.players[cf.active_player].letters[i])<0){
+				var div = document.createElement("div");
+				div.innerText = cf.players[cf.active_player].letters[i];
+				div.classList.add("player_letter");
 
-			div.setAttribute("draggable", "true");
-			div.setAttribute("ondragstart", "game.dragLetter(event);");
-			div.setAttribute("id", "letter_"+i+"-"+cf.players[player_id].letters[i]);
-			div.setAttribute("ondragend", "game.dragLetterEnd(event);");
+				div.setAttribute("draggable", "true");
+				div.setAttribute("ondragstart", "game.dragLetter(event);");
+				div.setAttribute("id", "letter_"+i+"-"+cf.players[cf.active_player].letters[i]);
+				div.setAttribute("ondragend", "game.dragLetterEnd(event);");
 
-	
-			
-			
-			var button = document.createElement("button");
-			button.classList.add("hovermenu");
-			button.innerText = "x";
-			button.setAttribute("onclick", "game.destroyChar('"+cf.players[player_id].letters[i]+"', "+i+");");
-		
-			div.appendChild(button);
-			
-			letters.appendChild(div);
+				
+				letters.appendChild(div);
+			}
+			else{
+				omit_us.splice(omit_us.indexOf(cf.players[cf.active_player].letters[i]),1)
+			}
 		}
 
 		//draw strokes avaialbe
@@ -415,12 +468,12 @@ cf.letters={
 		var row1 = document.createElement("tr");
 		var row2 = document.createElement("tr");
 		
-		for(var i  in  cf.players[player_id].strokes){
+		for(var i  in  cf.players[cf.active_player].strokes){
 			var cell = document.createElement("th");
 			cell.innerText = i ;
 			row1.appendChild(cell);
 			cell = document.createElement("td");
-			cell.innerText = cf.players[player_id].strokes[i] ;
+			cell.innerText = cf.players[cf.active_player].strokes[i] ;
 			row2.appendChild(cell);
 
 		
@@ -439,7 +492,7 @@ cf.letters={
 			var okay = true;
 			for(var j in cf.letters[i].strokes)
 			{
-				okay = okay && cf.players[player_id].strokes[j] >= cf.letters[i].strokes[j];
+				okay = okay && cf.players[cf.active_player].strokes[j] >= cf.letters[i].strokes[j];
 			}
 			if(okay){
 				var button = document.createElement("button");
@@ -477,12 +530,14 @@ cf.letters={
 				p.strokes[i] -= cf.letters[letter].strokes[i];
 			}
 			cf.players[cf.active_player].letters.push(letter);
+
 			cf.drawCarrel();
 		}
 	}
 
 	/** turns a character into strokes*/
 	cf.destroyChar = function(letter, idx){
+		console.log("destry", letter, idx);
 		if(cf.players[cf.active_player].letters[idx]==letter){
 			console.log("rm", letter)
 			for(var i in  cf.letters[letter].strokes){
@@ -493,6 +548,26 @@ cf.letters={
 		//redraw
 		cf.drawCarrel();
 	};
+	/** turns a character into strokes*/
+	cf.dropLetterShred = function(evt){
+		console.log(evt);
+		evt.preventDefault();
+		var data = evt.dataTransfer.getData("text");
+		console.log(data);
+		var dash = data.indexOf("-");
+		var score = data.replace("letter_","");
+		cf.destroyChar(data.substring(dash+1), score.substring(0, score.indexOf("-")));
+		evt.target.appendChild(document.getElementById(data));
+
+		var el = document.getElementById(data);
+		el.parentElement.removeChild(el)
+
+		
+	};
+	cf.dragOverShred = function(evt){
+		evt.preventDefault();
+	}
+	
 
 	
 	/** randomly shuffle an array*/
@@ -508,7 +583,6 @@ cf.letters={
 
 	/** callled when the crag event starts for ltters*/
 	cf.dragLetter=function(evt){
-		console.log(evt);
 		evt.dataTransfer.setData('text/plain', evt.target.id);
 		evt.dataTransfer.dropEffect = "move";
 	}
@@ -518,7 +592,6 @@ cf.letters={
 	}
 	//** handles the drop of a letter onto a blank space on the Rack.
 	cf.dropLetterRack = function(evt){
-		console.log(evt);
 		evt.preventDefault();
  
 		var data = evt.dataTransfer.getData("text");
@@ -527,7 +600,6 @@ cf.letters={
 	}
 	//** handles the drop of a letter onto a blank space on the board.
 	cf.dropLetterBoard = function(evt){
-		console.log(evt);
 		evt.preventDefault();
  
 		var data = evt.dataTransfer.getData("text");
