@@ -14,7 +14,8 @@ cf.active_player = 0;
 cf.bag = [];
 cf.settings ={
 	max_letters:7,
-	board_size : 17
+	board_size : 17,
+	jackpot:50
 };
 cf.board = [];
 cf.history =[];
@@ -23,6 +24,7 @@ cf.sound = {
 	yeah: new Audio('yeah-bbc.mp3'),
 	shred: new Audio('shred-bbc.mp3'),
 	error: new Audio('boo-bbc.mp3'),
+	end: new Audio('bbc-end.mp3'),
 	craft: new Audio('buzz-bbc.mp3')
 }
 
@@ -197,7 +199,6 @@ cf.letters={
 					if(word.length>1  && words.indexOf(word.toLowerCase())>=0){
 						wordsfound[idx.join("-")+"."+j] = word;
 						foundwords =true;
-						console.log(word);
 					}
 				}
 			}
@@ -225,7 +226,6 @@ cf.letters={
 
 		
 
-		console.log(result, wordsfound)	;
 		
 		//copy words to score 
 		
@@ -254,8 +254,15 @@ cf.letters={
 				for(var i = 0 ; i <r.wordsToScore[j].length;i++){
 					score+=cf.scoreChar(r.wordsToScore[j][i]);
 				}
+				if(cf.players[cf.active_player].letters.length ==0 &&
+					cf.players[cf.active_player].strokes.length ==0 ){
+					score+=cf.settings.jackpot;
+				}
+
 				//set score
 				cf.players[cf.active_player].score += score;
+
+
 				//save to scoring table
 				cf.scoring.push({player:cf.players[cf.active_player].name, word:r.wordsToScore[j], score:score});
 			
@@ -271,7 +278,7 @@ cf.letters={
 
 			//next letters
 			var more_letters =  r.playedletters.length;
-			//prevent users from getting 50k letters and also preven them from converting eltters into stroeks to refill
+			//prevent users from getting 50k letters and also preven them from converting eltters into strokes to refill
 			if(more_letters + cf.players[cf.active_player].letters.length >= cf.settings.max_letters){
 				more_letters = cf.settings.max_letters - cf.players[cf.active_player].letters.length;
 			}
@@ -386,6 +393,9 @@ cf.letters={
 		cell = document.createElement("th");
 		cell.innerText = "#"
 		row.appendChild(cell);
+		cell = document.createElement("th");
+		cell.innerText = "strokes"
+		row.appendChild(cell);
 
 		table.appendChild(row);
 
@@ -399,6 +409,14 @@ cf.letters={
 			row.appendChild(cell);
 			cell = document.createElement("td");
 			cell.innerText = cf.letters[i].freq;
+			row.appendChild(cell);
+			cell = document.createElement("td");
+			cell.innerText="";
+			for(var j  in cf.letters[i].strokes){
+				cell.innerText +=  j +"x"+cf.letters[i].strokes[j] +" ";
+			}
+			
+
 			row.appendChild(cell);
 			table.appendChild(row);
 		}
@@ -635,23 +653,72 @@ cf.letters={
 		//TODO
 	};
 
+	cf.closeIntro= function(){
+		cf.players[0].name = document.getElementById("player1").value;
+		cf.players[1].name = document.getElementById("player2").value;
+		document.getElementById("rules").setAttribute("style", "display:none");
+		cf.drawBoard();
+		cf.drawCarrel();
+	}
 
-	/** ajax wrapper **/
-	this.ajax = function(url, load) {
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", url,true);
-		xhr.onload=(e)=>{
-			if (xhr.readyState === 4) {
-				if (xhr.status === 200) {
-					load(xhr.responseText);
-				}
-				else{
-					console.log(xhr.responseCode, xhr.responseText);
-				}
+	cf.gameOver=function(){
+		var el = document.getElementById("content");
+		cf.clearEl(el);
+
+
+		var highest = 0;
+		var name = "?";
+
+		var table = document.createElement("table");
+		for(var i  in cf.players){
+			var row = document.createElement("tr");
+			var cell = document.createElement("td");
+			cell.innerText = cf.players[i].name;
+			row.appendChild(cell);
+			cell = document.createElement("td");
+			cell.innerText = cf.players[i].score;
+			row.appendChild(cell);
+			table.appendChild(row);
+			if(cf.players[i].score >highest){
+				highest = cf.players[i].score
+				name = cf.players[i].name;
 			}
 		}
-		xhr.send(null);
-	};
+
+		var h=  document.createElement("h1");
+		h.innerText = name+" Wins!";
+
+		var p =  document.createElement("p");
+		p.innerText = "with "+ highest + " points.";
+
+		el.appendChild(h);
+		el.appendChild(p);
+		el.appendChild(table);
+
+		table = document.createElement("table");
+		for(var i  in cf.scoring){
+			var row = document.createElement("tr");
+			var cell = document.createElement("td");
+			cell.innerText = cf.scoring[i].player;
+			row.appendChild(cell);
+			cell = document.createElement("td");
+			cell.innerText = cf.scoring[i].word;
+			row.appendChild(cell);
+			cell = document.createElement("td");
+			cell.innerText = cf.scoring[i].score +" points";
+			row.appendChild(cell);
+			table.prepend(row);
+		}
+
+		el.appendChild(table);
+
+		document.getElementById("rules").setAttribute("style", "");
+
+		cf.sound.end.pause();
+		cf.sound.end.currentTime =0;
+		cf.sound.end.play();
+
+	}
 
 };
 

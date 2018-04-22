@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 <head>
-	<title>Survival Text</title>
+	<title>Craft-able</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -75,8 +75,13 @@
 		height:2em;
 		background:#222;
 	}
-	
-	#play{
+	a{
+		color:#26a;
+	}
+	a:visted{
+	color:#a62;	
+	}
+	#play, #start{
 		background:#26a;
 		font-size:24px;
 		border:1px solid #eee;
@@ -88,7 +93,27 @@
 		border: 1px solid #eee;
 		
 	}
+	#rules{
+		position:  fixed;
+		width:100%;
+		height:100%;
+		overflow: auto;
+		background:rgba(0,0,0,0.3);
+	}
+	#rules div{
+		background:#222;
+		margin:3em;
+		padding:2em;
+	}
 
+	*{
+		-webkit-touch-callout: none; 
+		-webkit-user-select: none; 
+		-khtml-user-select: none; 
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
 
 
 	</style>
@@ -98,9 +123,44 @@
 		<h1>Craft-able</h1>
 		<p>A Mix of two different game, crafting and word games.</p>
 	</header>
-	<div id="playerarea">
+	<div id="rules">
+		<div id="content">
+			<h2>How to play</h2>
+			<p>The Game works much like scrabble or words with friends. It is designed for two player local play. However, you can break letters into component parts and the craft new letters from them. You can do this by dragging a letter into the "red shredder" box. From there you can rebuild them into letters by clicking the gray buttons to add them back into your letters</p>
+			<h3>Crafting</h3>
+			<p>Crafting turns letters in to stokes of different strokes:</p>
+			<ul>
+				<li> Vertical Line</li>
+				<li> Horizontal Line</li>
+				<li> Diagonal left </li>
+				<li> Diagonal Right</li>
+				<li> Curve left</li>
+				<li> Curve Right</li>
+			</ul>
+			<p>The same strokes can be used to create new letters. Once you have strokes buttons should show up above the letter rack that will craft letters. For details check out the Letters table.</p>
+			<h3>Winning</h3>
+			<p>The game ends when there are no letters in the bag and a player ends their turns with no letters. At that point its done and you have to reload to start over.</p>
 
-		
+			<h3>Pick your player Names</h3>
+			<p>Note: starting player is determined randomly</p>
+			<p>Player 1: <input id="player1" value="Dr. Goodlooking"/></p>
+
+			<p>Player 2: <input id="player2" value="Confused!"/></p>
+
+
+			<button onclick="game.closeIntro()" id="start">OKAY LET'S GO</button>
+
+			<h3>Notes</h3>
+			<p> The BBC <a href="http://bbcsfx.acropolis.org.uk/">provided all</a> the sounds used here</p>
+			<p>This was produced in 2 days for <a href="http://ldjam.com/events/ludum-dare/41">Ludum Dare 41</a>. 3 hours on Saturday and then most of Sunday.</p>
+			<p>Source and issue tracking should be available on <a href="https://github.com/lbrunjes/LudumDare41">github</a>.</p>
+			<p>Dictionary is from <a href="https://github.com/zeisler/scrabble/blob/master/db/dictionary.csv">here</a></p>
+			
+		</div>
+	</div>
+	
+
+	<div id="playerarea">
 		<div id="carrel">
 			
 			<div id="strokezone">
@@ -144,10 +204,6 @@
 
 	
 
-	<div id="rules">
-		<h2>Rules</h2>
-		<p>The Game works much like scabble or words with friends. It is designed for two player local play. Drag letters ontot eh grid to play them. However you can bvreak letters into component parts and the craft new letters from them. This means that pints are assigned base on how amny strokes you need to make them as letters are now interchangble</p>
-		
-	</div>
+	
 </body>
 </html>
