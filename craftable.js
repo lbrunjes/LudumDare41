@@ -19,7 +19,12 @@ cf.settings ={
 cf.board = [];
 cf.history =[];
 cf.scoring =[];
-cf.errorsound =  new Audio('boo-bbc.mp3');
+cf.sound = {
+	yeah: new Audio('yeah-bbc.mp3'),
+	shred: new Audio('shred-bbc.mp3'),
+	error: new Audio('boo-bbc.mp3'),
+	craft: new Audio('buzz-bbc.mp3')
+}
 
 cf.letters={
 	A:{"freq":9, "value": 3, "strokes":{'/':1,'\\':1,'-':1}},
@@ -242,8 +247,7 @@ cf.letters={
 		
 		//can the player play a word?
 		if(r.canPlayWord){
-			cf.errorsound.pause();
-			cf.errorsound.currentTime = 0;
+			
 			
 			for(var j in r.wordsToScore){
 				var score =0;
@@ -292,10 +296,16 @@ cf.letters={
 				cf.active_player = (cf.active_player+ 1) % cf.players.length;
 			}
 			cf.pushHistoryState();
+
+			cf.sound.yeah.pause();
+			cf.sound.yeah.currentTime = 0;
+			cf.sound.yeah.play();
 		}
 		else{
 			//TODO 
-			cf.errorsound.play();
+			cf.sound.error.pause();
+			cf.sound.error.currentTime = 0;
+			cf.sound.error.play();
 		}
 
 		//redraw
@@ -526,6 +536,9 @@ cf.letters={
 		
 		//do our swaparoo;		
 		if(okay){
+			cf.sound.craft.pause();
+			cf.sound.craft.currentTime =0;
+			cf.sound.craft.play();
 			for(var i in cf.letters[letter].strokes){
 				p.strokes[i] -= cf.letters[letter].strokes[i];
 			}
@@ -537,9 +550,10 @@ cf.letters={
 
 	/** turns a character into strokes*/
 	cf.destroyChar = function(letter, idx){
-		console.log("destry", letter, idx);
 		if(cf.players[cf.active_player].letters[idx]==letter){
-			console.log("rm", letter)
+			cf.sound.shred.pause();
+			cf.sound.shred.currentTime =0;
+			cf.sound.shred.play();
 			for(var i in  cf.letters[letter].strokes){
 				cf.players[cf.active_player].strokes[i]+= cf.letters[letter].strokes[i];
 			}
@@ -550,16 +564,15 @@ cf.letters={
 	};
 	/** turns a character into strokes*/
 	cf.dropLetterShred = function(evt){
-		console.log(evt);
 		evt.preventDefault();
 		var data = evt.dataTransfer.getData("text");
-		console.log(data);
 		var dash = data.indexOf("-");
 		var score = data.replace("letter_","");
 		cf.destroyChar(data.substring(dash+1), score.substring(0, score.indexOf("-")));
-		evt.target.appendChild(document.getElementById(data));
+		
 
 		var el = document.getElementById(data);
+		evt.target.appendChild(el);
 		el.parentElement.removeChild(el)
 
 		
@@ -596,7 +609,9 @@ cf.letters={
  
 		var data = evt.dataTransfer.getData("text");
 		evt.target.appendChild(document.getElementById(event.dataTransfer.getData("text/plain")));
-
+		cf.sound.shred.pause();
+		cf.sound.shred.currentTime =0;
+		cf.sound.shred.play();
 	}
 	//** handles the drop of a letter onto a blank space on the board.
 	cf.dropLetterBoard = function(evt){
@@ -606,7 +621,9 @@ cf.letters={
 		evt.target.appendChild(document.getElementById(event.dataTransfer.getData("text/plain")));
 
 		//remove from players letters
-
+		cf.sound.shred.pause();
+		cf.sound.shred.currentTime =0;
+		cf.sound.shred.play();
 	};
 	cf.dragOverLetterBoard = function(evt){
 		evt.preventDefault();
