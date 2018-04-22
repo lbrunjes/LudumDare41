@@ -10,6 +10,7 @@ var craftable = function(){
 var cf = this;
 cf.players = [];
 cf.active_player = 0;
+
 cf.tiles = [];
 cf.bag = [];
 cf.settings ={
@@ -121,7 +122,7 @@ cf.letter_frequency = {
 
 			//scoring
 
-			// next letters
+			//next letters
 
 			//remove all strokes?
 
@@ -224,7 +225,8 @@ cf.letter_frequency = {
 		//draw leters that can be made
 		var characters = document.getElementById("characters");
 		cf.clearEl(characters);
-		for(var i = 0 ; i < cf.letters_to_shapes.length; i++){
+		for(var i  in cf.letters_to_shapes){
+			
 			var okay = true;
 			for(var j in cf.letters_to_shapes[i])
 			{
@@ -237,16 +239,33 @@ cf.letter_frequency = {
 				button.setAttribute("onclick", "game.craftChar('"+i+"')");
 				characters.appendChild(button);
 			}
+			else{
+				var button = document.createElement("span");
+				button.innerText =i;
+				button.classList.add("disabled")
+				characters.appendChild(button);
+			}
 
 		}
 	}
 
 	/* makes a character from strokes*/
 	cf.craftChar = function(letter){
-		if(!player_id){
-			player_id = cf.active_player;
-		}
+		var p = cf.players[cf.active_player];
 
+		var okay = true;
+		for(var i in cf.letters_to_shapes[letter]){
+			okay =  okay && p.strokes[i] >= cf.letters_to_shapes[letter][i];
+		}
+		
+		//do our swaparoo;		
+		if(okay){
+			for(var i in cf.letters_to_shapes[letter]){
+				p.strokes[i] -= cf.letters_to_shapes[letter][i];
+			}
+			cf.players[cf.active_player].letters.push(letter);
+			cf.drawCarrel();
+		}
 	}
 
 	/** turns a character into strokes*/
