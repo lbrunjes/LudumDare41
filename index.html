@@ -19,14 +19,23 @@
 		color:#eee;
 		font: 16px sans-serif;
 	}
-	#rack, #crafting, #strokes{
+	#rack, #characters, #strokes, #gamedata{
 		display:flex;
+	}
+	.flexrow{
+		margin-right:1em;
 	}
 	#board td{
 		background:#222;
 		width: 2em;
 		height: 2em;
 		text-align:center;
+	}
+	#board .center{
+		background:#113;
+	}
+	#board td.letter{
+		background:#333;
 	}
 	.hovermenu{
 		display:none;
@@ -47,12 +56,24 @@
 		margin:20px;
 		
 	}
+	#rack{
+		border:1px solid #222;
+	}
 	#rack div{
 		border:1px solid #eee;
 		width:2em;
 		height:2em;
 		background:#222;
 	}
+	
+	#play{
+		background:#26a;
+		font-size:24px;
+		border:1px solid #eee;
+		color:#eee;
+	}
+
+
 
 	</style>
 </head>
@@ -65,30 +86,53 @@
 
 		<h2 id="player_name">Lee's Turn</h2>
 		<div id="carrel">
-			<div id="word"></div>
-			<div id="rack">
+			
+			<h3>Strokes</h3>
+			<div id="strokes"> 
 			</div>
 			<h3>Craft Characters</h3>
 			<div id="characters">
 				
 
 			</div>
-			<h3>Strokes</h3>
-			<div id="strokes"> 
+			
+			<div id="rack" ondrop="game.dropLetterRack(event)" ondragover="game.dragOverLetterBoard(event)">
 			</div>
 		</div>
 	</div>
+	
 	<div id="controls">
-		<button onclick="game.playWord()">Play</button>
-		<button onclick="game.craftChar()">Craft</button>
+		<button onclick="game.playWord()" id="play">Play</button>
 	</div>
-	<div id=board>
+	<div id="gamedata">
+		<div id="board" class="flexrow">
+		</div>
+		<div class="flexrow">
+			<h2>Score</h2>
+			<div id="scores">
+			</div>
+		</div>
+		<div class="flexrow">
+			<h2>Letters</h2>
+			<div id="letters">
+			</div>
+		</div>
+		<div class="flexrow">
+			<h2> History</h2>
+			<div id="history">
+			</div>
+		</div>
 	</div>
+
 	
 
 	<div id="rules">
 		<h2>Rules</h2>
+		<p>The Game works much like scabble or words with friends. It is designed for two player local play. Drag letters ontot eh grid to play them. However you can bvreak letters into component parts and the craft new letters from them. This means that pints are assigned base on how amny strokes you need to make them as letters are now interchangble</p>
 		
 	</div>
+	<footer>
+		2018 
+	</footer>
 </body>
 </html>
