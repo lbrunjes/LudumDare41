@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+	<title>Survival Text</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<script src="craftable.js"></script>
+	<script>
+		
+		var game = new craftable();
+		window.addEventListener("load", function(event) {
+			game.init();
+		});
+	</script>
+	<style type="text/css">
+		html{
+		background: #333;
+		color:#eee;
+		font: 16px sans-serif;
+	}
+	#rack, #crafting, #strokes{
+		display:flex;
+	}
+	#board td{
+		background:#222;
+		width: 2em;
+		height: 2em;
+		text-align:center;
+	}
+	.hovermenu{
+		display:none;
+	}
+	.disabled{
+		color:#666;
+	}
+	div.player_letter:hover .hovermenu{
+		display:block;
+	}
+	#carrel{
+		text-align: center;
+	}
+	#carrel h3{
+		text-align:left;	
+	}
+	#carrel div {
+		margin:20px;
+		
+	}
+	#rack div{
+		border:1px solid #eee;
+		width:2em;
+		height:2em;
+		background:#222;
+	}
+
+	</style>
+</head>
+<body>
+	<header>
+		<h1>Craft-able</h1>
+		<p>A Mix of two different game, crafting and word games.</p>
+	</header>
+	<div id="playerarea">
+
+		<h2 id="player_name">Lee's Turn</h2>
+		<div id="carrel">
+			<div id="word"></div>
+			<div id="rack">
+			</div>
+			<div id="characters">
+				
+
+			</div>
+			<h3>Strokes</h3>
+			<div id="strokes"> 
+			</div>
+		</div>
+	</div>
+	<div id="controls">
+		<button onclick="game.playWord()">Play</button>
+		<button onclick="game.craftChar()">Craft</button>
+	</div>
+	<div id=board>
+	</div>
+	
+
+	<div id="rules">
+		<h2>Rules</h2>
+		
+	</div>
+</body>
+</html>
